@@ -1,0 +1,47 @@
+name: Deploy Laravel API to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️ Récupération du code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️ Installation de PHP (pour composer)
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, bcmath, ctype, fileinfo, json, openssl, pdo, tokenizer, xml
+
+      # 3️ Installation des dépendances Laravel
+      - name: Install Composer dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader
+
+      # 4️ Nettoyage fichiers inutiles
+      - name: Prepare production files
+        run: |
+          rm -rf .git
+          rm -rf node_modules
+          rm -rf tests
+          rm -rf .github
+
+      # 5️ Upload vers Hostinger via FTP
+      - name: Deploy to Hostinger (FTP)
+        uses: SamKirkland/FTP-Deploy-Action@v4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ secrets.FTP_PORT }}
+          local-dir: ./
+          server-dir: /public_html/mye-api/
+          dangerous-clean-slate: false
