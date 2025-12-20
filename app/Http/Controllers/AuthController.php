@@ -13,13 +13,13 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'email'    => 'required|email',
-            'password' => 'required|min:8',
+            'password' => 'required', // PAS min ici
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Erreur de validation',
-                'errors'  => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
@@ -28,14 +28,14 @@ class AuthController extends Controller
 
             return response()->json([
                 'message' => 'Connexion réussie',
-                'data' => $data
+                'data'    => $data,
             ], 200);
 
-        } catch (\Exception $e) {
-
+        } catch (ValidationException $e) {
 
             return response()->json([
-                'message' => $e->getMessage()
+                'message' => 'Échec de connexion',
+                'errors'  => $e->errors(),
             ], 401);
         }
     }

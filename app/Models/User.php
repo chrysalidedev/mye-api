@@ -2,36 +2,49 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Notifications\Notifiable;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable,HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
+     * Champs assignables
      */
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
-        'role',//worker ou manager
+        'role',
+        'status',
         'avatar',
         'google_id',
 
+        // Profil
+        'gender',
+        'bio',
+        'city',
+        'country',
+
+        // Worker
+        'profession',
+        'skills',
+        'experience_years',
+        'availability',
+
+        // Manager
+        'company_name',
+        'company_activity',
+        'company_verified',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * Champs cachés
      */
     protected $hidden = [
         'password',
@@ -39,15 +52,46 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Casts automatiques
      */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'skills'            => 'array',
+        'availability'      => 'boolean',
+        'company_verified'  => 'boolean',
+    ];
+
+    /* =========================
+        Helpers métier
+    ========================== */
+
+    public function isWorker(): bool
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->role === 'worker';
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    public function isBlocked(): bool
+    {
+        return $this->status === 'blocked';
+    }
+
+    public function hasGoogleAccount(): bool
+    {
+        return !is_null($this->google_id);
     }
 }

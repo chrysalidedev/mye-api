@@ -17,9 +17,33 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
-            $table->string('role')->default('user'); //worker ou manager
             $table->string('avatar')->nullable();
             $table->string('google_id')->nullable();
+            $table->enum('role', ['worker', 'manager', 'admin'])->default('worker');
+            // Gestion utilisateur
+            $table->string('phone')->nullable()->unique()->after('email');
+            $table->enum('status', ['active', 'inactive', 'blocked'])
+                ->default('active')
+                ->after('role');
+
+            // Profil
+            $table->enum('gender', ['male', 'female'])->nullable();
+            $table->text('bio')->nullable();
+            $table->string('city')->nullable();
+            $table->string('country')->nullable();
+
+            // Worker
+            $table->string('profession')->nullable();
+            $table->json('skills')->nullable();
+            $table->integer('experience_years')->nullable();
+            $table->boolean('availability')->default(true);
+
+            // Manager
+            $table->string('company_name')->nullable();
+            $table->string('company_activity')->nullable();
+            $table->boolean('company_verified')->default(false);
+
+
             $table->rememberToken();
             $table->timestamps();
         });
