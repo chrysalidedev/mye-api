@@ -15,16 +15,15 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('phone')->nullable()->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->string('avatar')->nullable();
             $table->string('google_id')->nullable();
             $table->enum('role', ['worker', 'manager', 'admin'])->default('worker');
             // Gestion utilisateur
-            $table->string('phone')->nullable()->unique()->after('email');
             $table->enum('status', ['active', 'inactive', 'blocked'])
-                ->default('active')
-                ->after('role');
+                ->default('active');
 
             // Profil
             $table->enum('gender', ['male', 'female'])->nullable();

@@ -3,9 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class UserSeeder extends Seeder
 {
@@ -14,28 +13,39 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('users')->insert([
-            'name' => 'Essis Cedric',
-            'email' => 'cedric@example',
-            'password' => Hash::make('password'),
-            'role' => 'worker',
-            'avatar' => 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-            'created_at' => now(),
-            'updated_at' => now(),
-            'google_id' => null
+        User::create([
+            'name'      => 'Essis Cedric',
+            'email'     => 'cedric@example.com',
+            'password'  => Hash::make('password123'),
+            'role'      => 'worker',
+            'status'    => 'active',
+            'avatar'    => 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+            'profession' => 'Project Manager',
+            'skills' => json_encode(['Leadership', 'Agile Methodologies', 'Communication']),
+            'experience_years' => 5,
+            'availability'   => true
+        ]);
+
+        User::create([
+            'name'      => 'Akali Adin',
+            'email'     => 'admin@example.com',
+            'password'  => Hash::make('password123'),
+            'role'      => 'manager',
+            'status'    => 'active',
+            'avatar'    => 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+            'company_name'     => 'Tech Solutions',
+            'company_activity' => 'Software Development',
+            'company_verified' => true,
 
         ]);
 
-        DB::table('users')->insert([
-            'name' => 'Akali Adin',
-            'email' => 'admin@example',
-            'password' => Hash::make('password'),
-            'role' => 'manager',
-            'avatar' => 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-            'created_at' => now(),
-            'updated_at' => now(),
-            'google_id' => null
+        User::create([
+    'name'     => 'Super Admin',
+    'email'    => 'admin@mye.com',
+    'password' => Hash::make('admin123'),
+    'role'     => 'admin',
+    'status'   => 'active',
+]);
 
-        ]);
     }
 }

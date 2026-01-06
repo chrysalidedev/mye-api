@@ -48,4 +48,49 @@ class AuthService
             'token' => $token,
         ];
     }
+
+    public function googleLogin(array $data): array
+{
+    $user = User::where('email', $data['email'])->first();
+
+    if ($user) {
+        // Compte bloqué
+        if ($user->status === 'blocked') {
+            throw ValidationException::withMessages([
+                'account' => ['Votre compte est bloqué'],
+            ]);
+        }
+
+        // Lier google_id si absent
+        if (is_null($user->google_id)) {
+            $user->update([
+                'google_id' => $data['google_id'],
+                'avatar'    => $data['avatar'] ?? $user->avatar,
+            ]);
+        }
+
+    } else {
+        // Création nouvel utilisateur
+        $user = User::create([
+            'name'      => $data['name'],
+            'email'     => $data['email'],
+            'google_id' => $data['google_id'],
+            'avatar'    => $data['avatar'] ?? null,
+            'role'      => $data['role'] ?? 'worker',
+            'status'    => 'active',
+            'password'  => null,
+        ]);
+    }
+
+    // Nettoyage tokens
+    $user->tokens()->delete();
+
+    $token = $user->createToken('auth_token')->plainTextToken;
+
+    return [
+        'user'  => $user,
+        'token' => $token,
+    ];
+}
+
 }

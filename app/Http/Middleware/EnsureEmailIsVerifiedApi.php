@@ -6,21 +6,20 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class checkUserStatus
+class EnsureEmailIsVerifiedApi
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $auth()->user();
-        if($user->status === 'blocked') {
+        if (!$request->user() || !$request->user()->hasVerifiedEmail()) {
             return response()->json([
-                'message' => 'Votre compte est bloqué'
-            ]);
+                'message' => 'Votre adresse email doit être vérifiée pour accéder à cette ressource.',
+                'email_verified' => false,
+            ], 403);
         }
+
         return $next($request);
     }
 }
