@@ -27,6 +27,7 @@ class RegisterService
                 'email'     => $data['email'],
                 'phone'     => $data['phone'] ?? null,
                 'role'      => $data['role'],
+                'profession' => $data['profession'] ?? null,
                 'status'    => 'active',
                 'password'  => isset($data['password'])
                     ? Hash::make($data['password'])

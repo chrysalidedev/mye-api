@@ -52,6 +52,7 @@ class AuthController extends Controller
         'phone'     => 'nullable|string|unique:users,phone',
         'password'  => 'nullable|min:8|confirmed',
         'role'      => 'required|in:worker,manager',
+        'profession' => 'nullable|string|max:150',
         'google_id' => 'nullable|string',
     ]);
 
@@ -84,6 +85,14 @@ class AuthController extends Controller
     }
 }
 
+public function user(AuthService $authService){
+    return response()->json([
+        'message' => 'Informations de l\'utilisateur connecté',
+        'data'    => $authService->user(),
+        'success' => true
+    ], 200);
+}
+
 public function googleLogin(Request $request, AuthService $authService)
 {
     $validator = Validator::make($request->all(), [
@@ -91,12 +100,14 @@ public function googleLogin(Request $request, AuthService $authService)
         'email'     => 'required|email',
         'google_id' => 'required|string',
         'role'      => 'nullable|in:worker,manager',
+        'phone'     => 'nullable|string',
     ]);
 
     if ($validator->fails()) {
         return response()->json([
             'message' => 'Erreur de validation',
             'errors'  => $validator->errors(),
+            "success" => false
         ], 422);
     }
 
@@ -106,6 +117,7 @@ public function googleLogin(Request $request, AuthService $authService)
         return response()->json([
             'message' => 'Connexion Google réussie',
             'data'    => $data,
+            'success' => true
         ], 200);
 
     } catch (ValidationException $e) {
@@ -113,6 +125,7 @@ public function googleLogin(Request $request, AuthService $authService)
         return response()->json([
             'message' => 'Connexion refusée',
             'errors'  => $e->errors(),
+            "success" => false
         ], 401);
     }
 }

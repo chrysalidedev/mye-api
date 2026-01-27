@@ -21,4 +21,9 @@ public function list(): array
    public function getById(int $id): ?User{
        return User::find($id);
    }
+
+   public function updateUser(User $user, array $data): User{
+       $user->update($data);
+       return $user;
+   }
 }

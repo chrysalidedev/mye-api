@@ -49,6 +49,12 @@ class AuthService
         ];
     }
 
+    //Retouner les info de l'utilisateur connecté
+    public function user()
+    {
+        return auth()->user();
+    }
+
     public function googleLogin(array $data): array
 {
     $user = User::where('email', $data['email'])->first();
@@ -77,6 +83,8 @@ class AuthService
             'google_id' => $data['google_id'],
             'avatar'    => $data['avatar'] ?? null,
             'role'      => $data['role'] ?? 'worker',
+            'phone'     => $data['phone'] ?? null,
+            'email_verified_at' => now(),
             'status'    => 'active',
             'password'  => null,
         ]);
@@ -92,5 +100,7 @@ class AuthService
         'token' => $token,
     ];
 }
+
+
 
 }
