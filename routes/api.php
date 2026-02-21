@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\UploadController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -25,6 +26,11 @@ Route::group([
     Route::get('/user',[AuthController::class,'user']);
     Route::get('/{id}', [App\Http\Controllers\UserController::class, 'show']);
     Route::put('/update', [App\Http\Controllers\UserController::class, 'updateUser']);
+});
+
+// Route pour l'upload d'avatar
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/upload/avatar', [UploadController::class, 'uploadAvatar']);
 });
 
 
