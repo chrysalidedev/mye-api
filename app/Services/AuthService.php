@@ -83,6 +83,7 @@ class AuthService
                 'avatar'    => $data['avatar'] ?? $user->avatar,
                 'name'      => $data['name'],
                 'status'    => 'active',
+               
             ]);
         }
         

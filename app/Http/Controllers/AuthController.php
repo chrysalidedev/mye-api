@@ -96,11 +96,12 @@ public function user(AuthService $authService){
 public function googleLogin(Request $request, AuthService $authService)
 {
     $validator = Validator::make($request->all(), [
-        'name'      => 'required|string',
+        'name'      => 'required|string|max:255',
         'email'     => 'required|email',
         'google_id' => 'required|string',
         'role'      => 'nullable|in:worker,manager',
-        'phone'     => 'nullable|string',
+        'phone'     => 'nullable|string|max:20',
+        'avatar'    => 'nullable|string|max:500',
     ]);
 
     if ($validator->fails()) {

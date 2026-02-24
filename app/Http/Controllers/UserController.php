@@ -95,32 +95,36 @@ public function updateUser(Request $request, UserService $userService)
     Log::info("Auth user ID: " . auth()->user()->id);
 
     $user = $userService->getById(auth()->user()->id);
-            if (!$user) {
-            return response()->json([
-                'message' => 'Utilisateur non trouve',
-                'success' => false
-            ], 404);
-        }
-
+    if (!$user) {
+        return response()->json([
+            'message' => 'Utilisateur non trouve',
+            'success' => false
+        ], 404);
+    }
+    
     if ($user->isWorker()) {
         $rules = array_merge($rules, [
             'profession'        => 'nullable|string|max:150',
             'skills'            => 'nullable|array',
             'experience_years'  => 'nullable|integer|min:0',
-            'availability'      => 'boolean',
+            // 'availability'      => 'sometimes|boolean',
         ]);
     }
-
+    
     if ($user->isManager()) {
         $rules = array_merge($rules, [
             'company_name'      => 'nullable|string|max:255',
             'company_activity'  => 'nullable|string|max:500',
         ]);
     }
-
+    
+   
     $data = $request->validate($rules);
-
+   if ($user->isWorker()) {
+    $data['availability'] = $data['availability'] ?? false;
+}
         $userService->updateUser($user, $data);
+      
         return response()->json([
             'message' => 'Utilisateur mis à jour',
             'data'    => $user,
