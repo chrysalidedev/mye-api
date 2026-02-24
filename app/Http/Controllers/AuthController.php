@@ -130,5 +130,47 @@ public function googleLogin(Request $request, AuthService $authService)
     }
 }
 
+public function deleteAccount(Request $request)
+{
+    try {
+        $user = $request->user();
+        
+        Log::info('Tentative de suppression du compte', ['user_id' => $user ? $user->id : null]);
+        
+        if (!$user) {
+            Log::warning('Utilisateur non authentifié lors de la suppression');
+            return response()->json([
+                'message' => 'Utilisateur non authentifié',
+                'success' => false
+            ], 401);
+        }
+
+        // Révoquer tous les tokens de l'utilisateur
+        Log::info('Révocation des tokens', ['user_id' => $user->id]);
+        $user->tokens()->delete();
+
+        // Soft delete de l'utilisateur
+        Log::info('Soft delete de l\'utilisateur', ['user_id' => $user->id]);
+        $user->delete();
+
+        Log::info('Compte supprimé avec succès', ['user_id' => $user->id]);
+        
+        return response()->json([
+            'message' => 'Compte supprimé avec succès',
+            'success' => true
+        ], 200);
+
+    } catch (\Exception $e) {
+        Log::error('Erreur lors de la suppression du compte: ' . $e->getMessage(), [
+            'exception' => $e,
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'message' => 'Erreur lors de la suppression du compte: ' . $e->getMessage(),
+            'success' => false
+        ], 500);
+    }
+}
 
 }

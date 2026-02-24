@@ -22,28 +22,53 @@ class RegisterService
         try {
             DB::beginTransaction();
 
-            $user = User::create([
-                'name'      => $data['name'],
-                'email'     => $data['email'],
-                'phone'     => $data['phone'] ?? null,
-                'role'      => $data['role'],
-                'profession' => $data['profession'] ?? null,
-                'status'    => 'active',
-                'password'  => isset($data['password'])
-                    ? Hash::make($data['password'])
-                    : null,
-                'google_id' => $data['google_id'] ?? null,
-                // Si connexion Google, marquer email comme vérifié
-                'email_verified_at' => isset($data['google_id']) ? now() : null,
-            ]);
+            // Vérifier si un compte supprimé existe avec cet email
+            $existingUser = User::withTrashed()->where('email', $data['email'])->first();
+
+            if ($existingUser && $existingUser->trashed()) {
+                // Restaurer et mettre à jour le compte supprimé
+                \Log::info('Restauration du compte supprimé via register', ['email' => $existingUser->email, 'user_id' => $existingUser->id]);
+                
+                $existingUser->restore();
+                $existingUser->update([
+                    'name'      => $data['name'],
+                    'phone'     => $data['phone'] ?? $existingUser->phone,
+                    'role'      => $data['role'],
+                    'profession' => $data['profession'] ?? $existingUser->profession,
+                    'status'    => 'active',
+                    'password'  => isset($data['password'])
+                        ? Hash::make($data['password'])
+                        : $existingUser->password,
+                    'google_id' => $data['google_id'] ?? $existingUser->google_id,
+                    'email_verified_at' => isset($data['google_id']) ? now() : null,
+                ]);
+                
+                $user = $existingUser;
+            } else {
+                // Créer un nouveau compte
+                $user = User::create([
+                    'name'      => $data['name'],
+                    'email'     => $data['email'],
+                    'phone'     => $data['phone'] ?? null,
+                    'role'      => $data['role'],
+                    'profession' => $data['profession'] ?? null,
+                    'status'    => 'active',
+                    'password'  => isset($data['password'])
+                        ? Hash::make($data['password'])
+                        : null,
+                    'google_id' => $data['google_id'] ?? null,
+                    // Si connexion Google, marquer email comme vérifié
+                    'email_verified_at' => isset($data['google_id']) ? now() : null,
+                ]);
+            }
 
             // Supprimer anciens tokens
             $user->tokens()->delete();
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            // Envoyer email de vérification seulement si pas Google
-            if (empty($data['google_id'])) {
+            // Envoyer email de vérification seulement si pas Google et nouveau compte
+            if (empty($data['google_id']) && !$existingUser) {
                 event(new Registered($user));
             }
 
@@ -52,7 +77,7 @@ class RegisterService
             return [
                 'user'  => $user,
                 'token' => $token,
-                'email_verification_required' => empty($data['google_id']),
+                'email_verification_required' => empty($data['google_id']) && !$existingUser,
             ];
 
         } catch (\Exception $e) {

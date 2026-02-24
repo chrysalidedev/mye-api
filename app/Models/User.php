@@ -9,10 +9,11 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\Notifications\VerifyEmailNotification;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * Champs assignables
@@ -43,6 +44,14 @@ class User extends Authenticatable implements MustVerifyEmail
         'company_name',
         'company_activity',
         'company_verified',
+        
+        // Géolocalisation
+        'latitude',
+        'longitude',
+        'location_updated_at',
+        
+        // FCM
+        'fcm_token',
     ];
 
     /**
@@ -61,6 +70,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'skills'            => 'array',
         'availability'      => 'boolean',
         'company_verified'  => 'boolean',
+        'latitude'          => 'decimal:8',
+        'longitude'         => 'decimal:8',
+        'location_updated_at' => 'datetime',
     ];
 
     /**
@@ -103,5 +115,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasGoogleAccount(): bool
     {
         return !is_null($this->google_id);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
     }
 }
