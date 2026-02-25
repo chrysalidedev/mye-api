@@ -40,9 +40,10 @@ class FcmService
         }
 
         try {
-            $accessToken = self::getAccessToken($credentialsPath);
+            [$accessToken, $tokenError] = self::getAccessToken($credentialsPath);
             if (!$accessToken) {
-                return ['success' => false, 'error' => 'Impossible d\'obtenir le token d\'accès (vérifier le fichier compte de service).'];
+                $msg = $tokenError ?: 'Vérifier le fichier compte de service (storage/app/firebase-credentials.json).';
+                return ['success' => false, 'error' => 'Impossible d\'obtenir le token d\'accès: ' . $msg];
             }
 
             $url = "https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send";
@@ -98,23 +99,28 @@ class FcmService
 
     /**
      * Obtenir un token OAuth2 à partir du fichier compte de service (JWT).
+     * @return array{?string, ?string} [token ou null, message d'erreur si échec]
      */
-    private static function getAccessToken(string $credentialsPath): ?string
+    private static function getAccessToken(string $credentialsPath): array
     {
         $json = @file_get_contents($credentialsPath);
         if ($json === false) {
             Log::warning("FCM: impossible de lire le fichier: $credentialsPath");
-            return null;
+            return [null, "Fichier introuvable: $credentialsPath"];
         }
 
         $cred = json_decode($json, true);
         if (!$cred || empty($cred['client_email']) || empty($cred['private_key'])) {
             Log::warning('FCM: fichier compte de service invalide (client_email ou private_key manquant)');
-            return null;
+            return [null, 'Fichier invalide: client_email ou private_key manquant'];
         }
 
         // S'assurer que la clé PEM contient de vrais retours à la ligne (évite "Invalid JWT Signature")
         $cred['private_key'] = str_replace('\\n', "\n", $cred['private_key']);
+        $cred['private_key'] = trim($cred['private_key']);
+        if (substr($cred['private_key'], -1) !== "\n") {
+            $cred['private_key'] .= "\n";
+        }
 
         $now = time();
         $jwtPayload = [
@@ -128,7 +134,7 @@ class FcmService
 
         $jwt = self::encodeJwt($cred['private_key'], $cred['client_email'], $jwtPayload);
         if (!$jwt) {
-            return null;
+            return [null, 'Échec création JWT (vérifier la clé privée dans le JSON)'];
         }
 
         $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
@@ -137,12 +143,16 @@ class FcmService
         ]);
 
         if (!$response->successful()) {
-            Log::error('FCM OAuth2: ' . $response->body());
-            return null;
+            $body = $response->body();
+            Log::error('FCM OAuth2: ' . $body);
+            $decoded = @json_decode($body, true);
+            $msg = $decoded['error_description'] ?? $decoded['error'] ?? substr(trim($body), 0, 200);
+            return [null, (string) $msg];
         }
 
         $data = $response->json();
-        return $data['access_token'] ?? null;
+        $token = $data['access_token'] ?? null;
+        return [$token, $token ? null : 'Réponse OAuth2 sans access_token'];
     }
 
     private static function encodeJwt(string $privateKeyPem, string $clientEmail, array $payload): ?string
@@ -156,12 +166,14 @@ class FcmService
         $signatureInput = implode('.', $segments);
         $key = openssl_pkey_get_private($privateKeyPem);
         if ($key === false) {
-            Log::warning('FCM: openssl_pkey_get_private a échoué');
+            $err = openssl_error_string();
+            Log::warning('FCM: openssl_pkey_get_private a échoué: ' . ($err ?: 'unknown'));
             return null;
         }
 
         $signature = '';
         if (!openssl_sign($signatureInput, $signature, $key, OPENSSL_ALGO_SHA256)) {
+            Log::warning('FCM: openssl_sign a échoué: ' . (openssl_error_string() ?: 'unknown'));
             return null;
         }
 
