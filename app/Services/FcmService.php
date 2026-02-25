@@ -113,6 +113,9 @@ class FcmService
             return null;
         }
 
+        // S'assurer que la clé PEM contient de vrais retours à la ligne (évite "Invalid JWT Signature")
+        $cred['private_key'] = str_replace('\\n', "\n", $cred['private_key']);
+
         $now = time();
         $jwtPayload = [
             'iss' => $cred['client_email'],
