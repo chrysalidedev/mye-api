@@ -114,6 +114,7 @@ class AuthService
             'email_verified_at' => now(),
             'status'    => 'active',
             'password'  => null,
+            'company_verified' => true,
         ]);
     }
 

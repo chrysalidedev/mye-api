@@ -90,6 +90,7 @@ public function updateUser(Request $request, UserService $userService)
         'bio'     => 'nullable|string|max:500',
         'city'    => 'nullable|string|max:100',
         'country' => 'nullable|string|max:100',
+        'role'    => 'nullable|in:worker,manager',
     ];
 
     Log::info("Auth user ID: " . auth()->user()->id);
@@ -101,28 +102,30 @@ public function updateUser(Request $request, UserService $userService)
             'success' => false
         ], 404);
     }
-    
-    if ($user->isWorker()) {
+
+    // Pour la validation : si le rôle est envoyé (ex. complétion profil Google), on valide selon ce rôle
+    $effectiveRole = $request->input('role') ?? $user->role;
+
+    if ($effectiveRole === 'worker') {
         $rules = array_merge($rules, [
             'profession'        => 'nullable|string|max:150',
             'skills'            => 'nullable|array',
             'experience_years'  => 'nullable|integer|min:0',
-            // 'availability'      => 'sometimes|boolean',
         ]);
     }
-    
-    if ($user->isManager()) {
+
+    if ($effectiveRole === 'manager') {
         $rules = array_merge($rules, [
             'company_name'      => 'nullable|string|max:255',
             'company_activity'  => 'nullable|string|max:500',
         ]);
     }
-    
-   
+
     $data = $request->validate($rules);
-   if ($user->isWorker()) {
-    $data['availability'] = $data['availability'] ?? false;
-}
+
+    if (($data['role'] ?? $user->role) === 'worker') {
+        $data['availability'] = $data['availability'] ?? false;
+    }
         $userService->updateUser($user, $data);
       
         return response()->json([
