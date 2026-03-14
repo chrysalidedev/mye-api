@@ -36,6 +36,13 @@ class AuthService
             ]);
         }
 
+        // Email non vérifié
+        if (!$user->hasVerifiedEmail()) {
+            throw ValidationException::withMessages([
+                'email' => ['Veuillez vérifier votre adresse email avant de vous connecter.'],
+            ]);
+        }
+
         if (!Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Email ou mot de passe incorrect'],

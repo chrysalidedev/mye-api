@@ -91,7 +91,7 @@ class NotificationService
     /**
      * Notification de nouveau message
      */
-    public static function newMessage($receiverId, $senderName, $senderId, $messagePreview)
+    public static function newMessage($receiverId, $senderName, $senderId, $messagePreview, $conversationId = null)
     {
         return self::create(
             $receiverId,
@@ -100,7 +100,7 @@ class NotificationService
             $messagePreview,
             [
                 'sender_id' => $senderId,
-                'conversation_id' => null,
+                'conversation_id' => $conversationId,
             ]
         );
     }

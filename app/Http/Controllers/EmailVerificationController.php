@@ -7,48 +7,38 @@ use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Contracts\View\View;
 
 class EmailVerificationController extends Controller
 {
     /**
      * Vérifier l'email via URL signée
      */
-    public function verify(Request $request, string $id, string $hash): JsonResponse
+    public function verify(Request $request, string $id, string $hash): View
     {
-        // Vérifier la validité de la signature
         if (!$request->hasValidSignature()) {
-            return response()->json([
-                'message' => 'Lien de vérification invalide ou expiré',
-                'verified' => false,
-            ], 403);
+            return view('emails.verify-error', [
+                'message' => 'Ce lien de vérification est invalide ou a expiré.',
+            ]);
         }
 
         $user = User::findOrFail($id);
 
-        // Vérifier le hash
         if (!hash_equals($hash, sha1($user->getEmailForVerification()))) {
-            return response()->json([
-                'message' => 'Lien de vérification invalide',
-                'verified' => false,
-            ], 403);
+            return view('emails.verify-error', [
+                'message' => 'Ce lien de vérification est invalide.',
+            ]);
         }
 
-        if ($user->hasVerifiedEmail()) {
-            return response()->json([
-                'message' => 'Email déjà vérifié',
-                'verified' => true,
-            ], 200);
+        if (!$user->hasVerifiedEmail()) {
+            if ($user->markEmailAsVerified()) {
+                event(new Verified($user));
+            }
         }
 
-        if ($user->markEmailAsVerified()) {
-            event(new Verified($user));
-        }
-
-        return response()->json([
-            'message' => 'Email vérifié avec succès ! Vous pouvez maintenant vous connecter.',
-            'verified' => true,
-            'success' => true,
-        ], 200);
+        return view('emails.verify-success', [
+            'name' => $user->name,
+        ]);
     }
 
     /**

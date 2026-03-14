@@ -10,6 +10,7 @@ use App\Http\Controllers\ConnectionController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SubscriptionController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -130,4 +131,13 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/logout', [AuthController::class, 'logout']);
+});
+
+// Abonnement
+Route::post('/subscription/webhook', [SubscriptionController::class, 'webhook']); // public (CinetPay)
+Route::get('/subscription/return',   [SubscriptionController::class, 'returnUrl']); // public (retour navigateur)
+
+Route::middleware('auth:sanctum')->prefix('subscription')->group(function () {
+    Route::get('/status',   [SubscriptionController::class, 'status']);
+    Route::post('/initiate', [SubscriptionController::class, 'initiate']);
 });

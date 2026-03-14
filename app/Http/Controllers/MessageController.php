@@ -241,6 +241,15 @@ class MessageController extends Controller
 
         try {
             $user = $request->user();
+
+            if (!$user->hasActiveSubscription()) {
+                return response()->json([
+                    'success'               => false,
+                    'message'               => 'Abonnement requis pour envoyer des messages.',
+                    'requires_subscription' => true,
+                ], 403);
+            }
+
             $conversation = Conversation::find($request->conversation_id);
 
             // Vérifier que l'utilisateur fait partie de la conversation
@@ -266,6 +275,21 @@ class MessageController extends Controller
             ]);
 
             DB::commit();
+
+            // Envoyer une notification push au destinataire
+            $recipient = $conversation->getOtherUser($user->id);
+            if ($recipient) {
+                $preview = mb_strlen($request->content) > 100
+                    ? mb_substr($request->content, 0, 100) . '…'
+                    : $request->content;
+                \App\Services\NotificationService::newMessage(
+                    $recipient->id,
+                    $user->name,
+                    $user->id,
+                    $preview,
+                    $conversation->id
+                );
+            }
 
             // Charger les relations
             $message->load('sender:id,name,avatar');

@@ -38,13 +38,10 @@ class VerifyEmailNotification extends VerifyEmail
         $verificationUrl = $this->verificationUrl($notifiable);
 
         return (new MailMessage)
-            ->subject('Vérifiez votre adresse email')
-            ->greeting('Bonjour ' . $notifiable->name . ' !')
-            ->line('Merci de vous être inscrit sur notre plateforme.')
-            ->line('Veuillez cliquer sur le bouton ci-dessous pour vérifier votre adresse email.')
-            ->action('Vérifier mon email', $verificationUrl)
-            ->line('Ce lien expirera dans 60 minutes.')
-            ->line('Si vous n\'avez pas créé de compte, aucune action n\'est requise.')
-            ->salutation('Cordialement, L\'équipe ' . config('app.name'));
+            ->subject('Vérifiez votre adresse email – Mye')
+            ->view('emails.verify-email', [
+                'url'  => $verificationUrl,
+                'name' => $notifiable->name,
+            ]);
     }
 }

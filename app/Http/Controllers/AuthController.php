@@ -86,9 +86,13 @@ class AuthController extends Controller
 }
 
 public function user(AuthService $authService){
+    $user = $authService->user();
     return response()->json([
         'message' => 'Informations de l\'utilisateur connecté',
-        'data'    => $authService->user(),
+        'data'    => array_merge(
+            is_array($user) ? $user : $user->toArray(),
+            ['is_subscribed' => auth()->user()->hasActiveSubscription()]
+        ),
         'success' => true
     ], 200);
 }
