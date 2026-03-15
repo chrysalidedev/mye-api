@@ -65,7 +65,7 @@ class SubscriptionController extends Controller
 
         $transactionId = 'MYE-' . strtoupper(Str::random(12));
 
-        $subscription = Subscription::create([
+        Subscription::create([
             'user_id'                 => $user->id,
             'plan'                    => $request->plan,
             'months'                  => $months,
@@ -75,31 +75,19 @@ class SubscriptionController extends Controller
             'currency'                => $planModel->currency,
         ]);
 
-        try {
-            $result = $this->cinetPay->initiatePayment(
-                transactionId: $transactionId,
-                amount:        $amount,
-                currency:      $planModel->currency,
-                description:   "Abonnement Mye – {$planModel->name} ($months mois)",
-                customerName:  $user->name,
-                customerEmail: $user->email,
-                returnUrl:     config('app.url') . '/api/subscription/return',
-                notifyUrl:     config('app.url') . '/api/subscription/webhook',
-            );
-
-            return response()->json([
-                'success'        => true,
-                'payment_url'    => $result['payment_url'],
-                'transaction_id' => $transactionId,
-            ]);
-        } catch (\Throwable $e) {
-            $subscription->delete();
-            Log::error('CinetPay initiate error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Impossible d\'initialiser le paiement : ' . $e->getMessage(),
-            ], 500);
-        }
+        return response()->json([
+            'success'        => true,
+            'transaction_id' => $transactionId,
+            'amount'         => (int) $amount,
+            'currency'       => $planModel->currency,
+            'description'    => "Abonnement Mye – {$planModel->name} ($months mois)",
+            'apikey'         => config('subscription.cinetpay.apikey') ?? env('CINETPAY_API_KEY'),
+            'site_id'        => config('subscription.cinetpay.site_id') ?? env('CINETPAY_SITE_ID'),
+            'notify_url'     => config('app.url') . '/api/subscription/webhook',
+            'return_url'     => config('app.url') . '/api/subscription/return',
+            'customer_name'  => $user->name ?? 'Client Mye',
+            'customer_email' => $user->email ?? 'client@mye.app',
+        ]);
     }
 
     /**
