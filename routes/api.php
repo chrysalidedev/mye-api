@@ -140,4 +140,5 @@ Route::get('/subscription/return',   [SubscriptionController::class, 'returnUrl'
 Route::middleware('auth:sanctum')->prefix('subscription')->group(function () {
     Route::get('/status',   [SubscriptionController::class, 'status']);
     Route::post('/initiate', [SubscriptionController::class, 'initiate']);
+    Route::get('/history',  [SubscriptionController::class, 'history']);
 });

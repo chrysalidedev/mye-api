@@ -96,6 +96,32 @@ class SubscriptionController extends Controller
     }
 
     /**
+     * Historique des abonnements de l'utilisateur.
+     */
+    public function history(Request $request)
+    {
+        $history = $request->user()
+            ->subscriptions()
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn($s) => [
+                'id'         => $s->id,
+                'plan'       => $s->plan,
+                'months'     => $s->months,
+                'amount'     => (float) $s->amount,
+                'currency'   => $s->currency,
+                'status'     => $s->status,
+                'starts_at'  => $s->starts_at?->toIso8601String(),
+                'expires_at' => $s->expires_at?->toIso8601String(),
+                'created_at' => $s->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->toArray();
+
+        return response()->json(['success' => true, 'history' => $history]);
+    }
+
+    /**
      * Webhook CinetPay (appelé automatiquement par CinetPay après paiement).
      */
     public function webhook(Request $request)
