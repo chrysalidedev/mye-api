@@ -13,8 +13,12 @@ class CinetPayService
 
     public function __construct()
     {
-        $this->apiKey  = config('subscription.cinetpay.apikey', '91988269679b43217f5bb6.89080309');
-        $this->siteId  = config('subscription.cinetpay.site_id', '105886764');
+        $this->apiKey = (string) (config('subscription.cinetpay.apikey') ?? env('CINETPAY_API_KEY', ''));
+        $this->siteId = (string) (config('subscription.cinetpay.site_id') ?? env('CINETPAY_SITE_ID', ''));
+
+        if (empty($this->apiKey) || empty($this->siteId)) {
+            throw new \RuntimeException('CinetPay API key ou Site ID manquant. Vérifiez CINETPAY_API_KEY et CINETPAY_SITE_ID dans .env');
+        }
     }
 
     /**
