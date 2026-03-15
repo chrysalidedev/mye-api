@@ -59,9 +59,14 @@ class SubscriptionController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
-        $months = (int) $request->months;
-        $amount = round($planModel->price_per_month * $months, 2);
-        $user   = $request->user();
+        $months    = (int) $request->months;
+        $amountEur = round($planModel->price_per_month * $months, 2);
+        $user      = $request->user();
+
+        // Conversion EUR → XOF (parité fixe : 1 EUR = 655.957 XOF)
+        $EUR_TO_XOF   = 655.957;
+        $amountXof    = (int) round($amountEur * $EUR_TO_XOF);
+        $cinetCurrency = $planModel->currency === 'EUR' ? 'XOF' : $planModel->currency;
 
         $transactionId = 'MYE-' . strtoupper(Str::random(12));
 
@@ -71,15 +76,15 @@ class SubscriptionController extends Controller
             'months'                  => $months,
             'status'                  => 'pending',
             'cinetpay_transaction_id' => $transactionId,
-            'amount'                  => $amount,
+            'amount'                  => $amountEur,
             'currency'                => $planModel->currency,
         ]);
 
         return response()->json([
             'success'        => true,
             'transaction_id' => $transactionId,
-            'amount'         => (int) $amount,
-            'currency'       => $planModel->currency,
+            'amount'         => $amountXof,
+            'currency'       => $cinetCurrency,
             'description'    => "Abonnement Mye – {$planModel->name} ($months mois)",
             'apikey'         => config('subscription.cinetpay.apikey') ?? env('CINETPAY_API_KEY'),
             'site_id'        => config('subscription.cinetpay.site_id') ?? env('CINETPAY_SITE_ID'),

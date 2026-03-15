@@ -17,8 +17,8 @@ class SubscriptionPlanSeeder extends Seeder
             [
                 'name'            => 'Mensuel',
                 'slug'            => 'monthly',
-                'price_per_month' => 1000.00,
-                'currency'        => 'XOF',
+                'price_per_month' => 10.00,
+                'currency'        => 'EUR',
                 'is_active'       => true,
                 'created_at'      => now(),
                 'updated_at'      => now(),
