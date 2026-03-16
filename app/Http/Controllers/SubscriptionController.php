@@ -40,7 +40,11 @@ class SubscriptionController extends Controller
             'success'    => true,
             'subscribed' => (bool) $active,
             'expires_at' => $active?->expires_at?->toIso8601String(),
+            'starts_at'  => $active?->starts_at?->toIso8601String(),
             'plan'       => $active?->plan,
+            'months'     => $active?->months,
+            'amount'     => $active ? (float) $active->amount : null,
+            'currency'   => $active?->currency,
             'plans'      => $plans,
         ]);
     }
