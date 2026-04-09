@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Services\CinetPayService;
+use App\Services\HubPaiementServices;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
 class SubscriptionController extends Controller
 {
-    public function __construct(private CinetPayService $cinetPay) {}
+    public function __construct(private CinetPayService $cinetPay, private HubPaiementServices $hubPaiement) {}
 
     /**
      * Retourner les plans (depuis la BDD) et le statut d'abonnement de l'utilisateur.
@@ -171,4 +172,41 @@ class SubscriptionController extends Controller
     {
         return redirect(config('app.frontend_url', config('app.url')) . '?payment=done');
     }
+
+
+    ###########################################################" HUB PAIEMANT ##########################################"
+
+    public function hubPaiement(Request $request)
+    {
+
+        $dataRequest = $request->all();
+
+        //Auth du User pour recuperer les informations de contact etc...
+
+        /**
+         * codePaiement : a genrer
+         *nom_usager => utilisateur qui initie le paiement
+         *url_retour => url de redirection apres le paiement
+         *url_callback => url de callback pour le hub de paiement (operation a pres paiement ou echec paiement)
+         */
+        $data = [
+                'code_paiement' => $codePaiement,
+                'nom_usager' => "Client ",
+                'prenom_usager' => '00000001',
+                'telephone' => $demande->contact_client,
+                'email' => 'xxxxxxx@gmail.com',
+                'libelle_article' => $libelle,
+                'quantite' => 1,
+                'montant' => $montant,
+                'lib_order' => $libelle,
+                'pay_fees' => 1,seeder
+                'Url_Retour' => urlRetour() .  $codePaiement,
+                'Url_Callback' => urlCallback()
+                // 'Url_Retour' => route('resultat.paiement',['codePaiement'=>$codePaiement]),
+                // 'Url_Callback' => route('paiements.newCallBack'),
+            ];
+        $response = $this->hubPaiement->initiatePayment($data);
+        return response()->json($response);
+    }
+
 }
