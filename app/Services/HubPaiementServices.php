@@ -14,9 +14,9 @@ class HubPaiementServices
 
     public function __construct()
     {
-        $this->apiKey = (string) (config('subscription.hum_paiement.apikey') ?? env('HUB_PAIEMENT_API_KEY', ''));
+        $this->apiKey = (string) (config('subscription.hub_paiement.apikey') ?? env('HUB_PAIEMENT_API_KEY', ''));
         if (empty($this->apiKey)) {
-            throw new \RuntimeException('HumPaiement API key manquant. Vérifiez HUB_PAIEMENT_API_KEY dans .env');
+            throw new \RuntimeException('HubPaiement API key manquant. Vérifiez HUB_PAIEMENT_API_KEY dans .env');
         }
     }
 
