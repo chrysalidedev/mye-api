@@ -199,7 +199,7 @@ class SubscriptionController extends Controller
                 'quantite' => 1,
                 'montant' => $montant,
                 'lib_order' => $libelle,
-                'pay_fees' => 1,seeder
+                'pay_fees' => 1,
                 'Url_Retour' => urlRetour() .  $codePaiement,
                 'Url_Callback' => urlCallback()
                 // 'Url_Retour' => route('resultat.paiement',['codePaiement'=>$codePaiement]),
