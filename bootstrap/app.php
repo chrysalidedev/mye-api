@@ -15,11 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'verified.api' => \App\Http\Middleware\EnsureEmailIsVerifiedApi::class,
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);
-        // Évite "Route [login] not defined" : pour les requêtes API, ne pas rediriger (Laravel renverra du JSON 401).
+        // Redirection des invités selon la route
         $middleware->redirectGuestsTo(function ($request) {
             if ($request->is('api/*')) {
                 return null;
+            }
+            if ($request->is('admin*')) {
+                return route('admin.login');
             }
             return '/';
         });

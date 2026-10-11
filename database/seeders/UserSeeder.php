@@ -39,13 +39,16 @@ class UserSeeder extends Seeder
 
         ]);
 
-        User::create([
-    'name'     => 'Super Admin',
-    'email'    => 'admin@mye.com',
-    'password' => Hash::make('admin123'),
-    'role'     => 'admin',
-    'status'   => 'active',
-]);
-
+        User::updateOrCreate(
+            ['email' => 'admin@appmye.pro'],
+            [
+                'name'              => 'Super Admin Mye',
+                'password'          => Hash::make('Mye@Admin2026!'),
+                'role'              => 'admin',
+                'status'            => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }
+
