@@ -17,12 +17,26 @@
           <!-- En-tête avec logo -->
           <tr>
             <td align="center" style="background-color:#0d0d0d;padding:32px 40px;">
-              <img
-                src="{{ config('app.url') }}/images/LOGO-MYE-Dark.png"
-                alt="Mye"
-                width="100"
-                style="display:block;height:auto;"
-              />
+              @php
+                $logoPath = public_path('images/LOGO-MYE-Dark.png');
+              @endphp
+              @if (isset($message) && file_exists($logoPath))
+                <img
+                  src="{{ $message->embed($logoPath) }}"
+                  alt="Mye"
+                  width="110"
+                  style="display:block;height:auto;margin:0 auto;"
+                />
+              @elseif (file_exists($logoPath))
+                <img
+                  src="data:image/png;base64,{{ base64_encode(file_get_contents($logoPath)) }}"
+                  alt="Mye"
+                  width="110"
+                  style="display:block;height:auto;margin:0 auto;"
+                />
+              @else
+                <div style="font-size:26px;font-weight:bold;color:#CBA948;letter-spacing:2px;font-family:sans-serif;">MYE</div>
+              @endif
             </td>
           </tr>
 

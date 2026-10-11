@@ -178,4 +178,127 @@ public function deleteAccount(Request $request)
     }
 }
 
+    /**
+     * Demande d'envoi du code de réinitialisation
+     */
+    public function forgotPassword(Request $request, AuthService $authService)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Adresse email invalide.',
+                'errors'  => $validator->errors(),
+                'success' => false,
+            ], 422);
+        }
+
+        try {
+            $result = $authService->sendResetPasswordOtp($request->email);
+
+            return response()->json([
+                'message' => $result['message'],
+                'data'    => ['email' => $result['email']],
+                'success' => true,
+            ], 200);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => $e->validator->errors()->first() ?: 'Erreur de réinitialisation',
+                'errors'  => $e->errors(),
+                'success' => false,
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Erreur forgotPassword: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Une erreur est survenue lors du traitement de votre demande.',
+                'success' => false,
+            ], 500);
+        }
+    }
+
+    /**
+     * Vérification du code OTP
+     */
+    public function verifyResetCode(Request $request, AuthService $authService)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'code'  => 'required|string|size:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Le code et l\'adresse email sont requis.',
+                'errors'  => $validator->errors(),
+                'success' => false,
+            ], 422);
+        }
+
+        try {
+            $authService->verifyResetCode($request->email, $request->code);
+
+            return response()->json([
+                'message' => 'Code vérifié avec succès.',
+                'success' => true,
+            ], 200);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => $e->validator->errors()->first() ?: 'Code invalide ou expiré.',
+                'errors'  => $e->errors(),
+                'success' => false,
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Erreur verifyResetCode: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Une erreur est survenue lors de la vérification du code.',
+                'success' => false,
+            ], 500);
+        }
+    }
+
+    /**
+     * Réinitialisation effective du mot de passe
+     */
+    public function resetPassword(Request $request, AuthService $authService)
+    {
+        $validator = Validator::make($request->all(), [
+            'email'                 => 'required|email',
+            'code'                  => 'required|string|size:6',
+            'password'              => 'required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Erreur de validation',
+                'errors'  => $validator->errors(),
+                'success' => false,
+            ], 422);
+        }
+
+        try {
+            $result = $authService->resetPassword($validator->validated());
+
+            return response()->json([
+                'message' => $result['message'],
+                'success' => true,
+            ], 200);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => $e->validator->errors()->first() ?: 'Erreur de réinitialisation',
+                'errors'  => $e->errors(),
+                'success' => false,
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Erreur resetPassword: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Une erreur est survenue lors de la mise à jour du mot de passe.',
+                'success' => false,
+            ], 500);
+        }
+    }
 }
