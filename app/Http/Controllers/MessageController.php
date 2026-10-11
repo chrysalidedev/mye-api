@@ -21,6 +21,12 @@ class MessageController extends Controller
             $user = $request->user();
             
             $conversations = Conversation::forUser($user->id)
+                ->whereHas('user1', function ($q) {
+                    $q->where('status', '!=', 'blocked');
+                })
+                ->whereHas('user2', function ($q) {
+                    $q->where('status', '!=', 'blocked');
+                })
                 ->with(['user1', 'user2', 'lastMessage.sender'])
                 ->orderByLastMessage()
                 ->get()

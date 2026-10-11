@@ -235,6 +235,12 @@ class ConnectionController extends Controller
                     $query->where('sender_id', $userId)
                           ->orWhere('receiver_id', $userId);
                 })
+                ->whereHas('sender', function ($q) {
+                    $q->where('status', '!=', 'blocked');
+                })
+                ->whereHas('receiver', function ($q) {
+                    $q->where('status', '!=', 'blocked');
+                })
                 ->with(['sender', 'receiver'])
                 ->get()
                 ->map(function ($connection) use ($userId) {
@@ -268,6 +274,9 @@ class ConnectionController extends Controller
         try {
             $requests = Connection::where('receiver_id', $userId)
                 ->where('status', 'pending')
+                ->whereHas('sender', function ($q) {
+                    $q->where('status', '!=', 'blocked');
+                })
                 ->with('sender')
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -295,6 +304,9 @@ class ConnectionController extends Controller
         try {
             $requests = Connection::where('sender_id', $userId)
                 ->where('status', 'pending')
+                ->whereHas('receiver', function ($q) {
+                    $q->where('status', '!=', 'blocked');
+                })
                 ->with('receiver')
                 ->orderBy('created_at', 'desc')
                 ->get();

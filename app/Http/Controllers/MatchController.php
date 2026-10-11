@@ -90,6 +90,8 @@ class MatchController extends Controller
                     [$user->latitude, $user->longitude, $user->latitude]
                 )
                 ->where('id', '!=', $user->id)
+                ->where('role', '!=', 'admin')
+                ->where('status', '!=', 'blocked')
                 ->whereNotNull('latitude')
                 ->whereNotNull('longitude')
                 ->having('distance', '<=', $radius)
@@ -306,6 +308,12 @@ class MatchController extends Controller
                 ->where(function ($query) use ($user) {
                     $query->where('user1_id', $user->id)
                           ->orWhere('user2_id', $user->id);
+                })
+                ->whereHas('user1', function ($q) {
+                    $q->where('status', '!=', 'blocked');
+                })
+                ->whereHas('user2', function ($q) {
+                    $q->where('status', '!=', 'blocked');
                 })
                 ->with(['user1', 'user2'])
                 ->orderBy('matched_at', 'desc')

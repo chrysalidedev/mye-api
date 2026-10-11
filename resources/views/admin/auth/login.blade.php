@@ -98,10 +98,10 @@
                             type="email"
                             name="email"
                             id="email"
-                            value="{{ old('email', 'admin@appmye.pro') }}"
+                            value="{{ old('email') }}"
                             required
                             autofocus
-                            placeholder="admin@appmye.pro"
+                            placeholder="nom@exemple.com"
                             class="w-full pl-10 pr-4 py-3 bg-slate-900/80 border {{ $errors->has('email') ? 'border-red-500' : 'border-slate-800 focus:border-mye-gold' }} rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-mye-gold/20 transition-all"
                         >
                     </div>
@@ -171,16 +171,6 @@
                     <span>Accéder au Dashboard</span>
                 </button>
             </form>
-
-            <!-- Test credentials hint -->
-            <div class="mt-6 pt-5 border-t border-slate-800 text-center">
-                <p class="text-xs text-slate-400">Compte administrateur configuré :</p>
-                <div class="mt-1.5 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-mye-gold">
-                    <span>admin@appmye.pro</span>
-                    <span class="text-slate-600">|</span>
-                    <span>Mye@Admin2026!</span>
-                </div>
-            </div>
         </div>
 
         <!-- Footer note -->
