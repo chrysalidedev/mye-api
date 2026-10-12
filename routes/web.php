@@ -4,7 +4,7 @@ use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminSubscriptionController;
-use App\Http\Controllers\Admin\AdminMatchController;
+use App\Http\Controllers\AccountDeletionController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -13,6 +13,16 @@ Route::get('/', function () {
 Route::get('/privacy-policy', function () {
     return view('privacy-policy');
 })->name('privacy-policy');
+
+// Suppression de compte et des données (Exigence Google Play & RGPD)
+Route::get('/delete-account', [AccountDeletionController::class, 'show'])->name('account.delete');
+Route::post('/delete-account', [AccountDeletionController::class, 'submit'])->name('account.delete.submit');
+
+// Alias pour éviter toute erreur 404 quel que soit le lien déclaré sur Google Play Console
+Route::get('/delete-data', [AccountDeletionController::class, 'show']);
+Route::get('/data-deletion', [AccountDeletionController::class, 'show']);
+Route::get('/account-deletion', [AccountDeletionController::class, 'show']);
+Route::get('/suppression-compte', [AccountDeletionController::class, 'show']);
 
 // --- ADMINISTRATION MYE ---
 Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('admin.login');

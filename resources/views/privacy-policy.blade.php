@@ -213,7 +213,7 @@
                 <li><strong>Droit d'opposition :</strong> vous opposer à certains traitements.</li>
                 <li><strong>Droit à la portabilité :</strong> recevoir vos données dans un format structuré.</li>
             </ul>
-            <p>Pour exercer ces droits, contactez-nous via les coordonnées ci-dessous.</p>
+            <p>Pour exercer ces droits, vous pouvez effectuer une demande directe de suppression de vos données via notre <a href="{{ route('account.delete') }}" style="color: #6366f1; font-weight: 600;">page de suppression de compte</a> ou nous contacter via les coordonnées ci-dessous.</p>
         </section>
 
         <section>
