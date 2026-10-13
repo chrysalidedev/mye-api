@@ -27,6 +27,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'status',
         'avatar',
         'google_id',
+        'apple_id',
+        'firebase_uid',
 
         // Profil
         'gender',
@@ -53,6 +55,11 @@ class User extends Authenticatable implements MustVerifyEmail
         // FCM
         'fcm_token',
     ];
+
+    /**
+     * Champs visibles uniquement par l'utilisateur lui-même
+     */
+    public const PRIVATE_FIELDS = ['fcm_token', 'google_id', 'apple_id', 'firebase_uid'];
 
     /**
      * Champs cachés

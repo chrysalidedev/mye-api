@@ -16,6 +16,7 @@ class UserService
                    ->where('id', '!=', $currentUserId)
                    ->where('status', '!=', 'blocked')
                    ->get()
+                   ->makeHidden(User::PRIVATE_FIELDS)
                    ->toArray();
     }
 
@@ -30,6 +31,11 @@ class UserService
         // Si le compte est bloqué et qu'il ne s'agit pas de l'utilisateur connecté
         if ($user->status === 'blocked' && auth()->id() !== $user->id) {
             return null;
+        }
+
+        // Ne pas exposer les identifiants techniques d'un autre utilisateur
+        if (auth()->id() !== $user->id) {
+            $user->makeHidden(User::PRIVATE_FIELDS);
         }
 
         return $user;

@@ -17,8 +17,10 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 
-Route::prefix('auth')->group(function () {
+// Limitation : 10 tentatives par minute et par IP sur l'authentification
+Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
     Route::post('/google-login',[AuthController::class,'googleLogin']);
+    Route::post('/apple-login',[AuthController::class,'appleLogin']);
     Route::post('/login',[AuthController::class,'login']);
     Route::post('/register',[AuthController::class,'register']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);

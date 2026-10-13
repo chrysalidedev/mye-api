@@ -40,4 +40,11 @@ return [
         'credentials' => env('FCM_CREDENTIALS_PATH'),
     ],
 
+    'firebase' => [
+        'project_id' => env('FIREBASE_PROJECT_ID', 'mye-app-5c61a'),
+        // Autorise temporairement /auth/google-login sans firebase_token
+        // (anciennes versions de l'app). À laisser à false en production.
+        'allow_legacy_google_login' => env('FIREBASE_ALLOW_LEGACY_GOOGLE_LOGIN', false),
+    ],
+
 ];

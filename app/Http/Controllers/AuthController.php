@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\AuthService;
+use App\Services\FirebaseTokenVerifier;
 use App\Services\RegisterService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -97,10 +98,13 @@ public function user(AuthService $authService){
     ], 200);
 }
 
-public function googleLogin(Request $request, AuthService $authService)
+public function googleLogin(Request $request, AuthService $authService, FirebaseTokenVerifier $verifier)
 {
+    $legacy = config('services.firebase.allow_legacy_google_login');
+
     $validator = Validator::make($request->all(), [
-        'name'      => 'required|string|max:255',
+        'firebase_token' => $legacy ? 'nullable|string' : 'required|string',
+        'name'      => 'nullable|string|max:255',
         'email'     => 'required|email',
         'google_id' => 'required|string',
         'role'      => 'nullable|in:worker,manager',
@@ -117,10 +121,53 @@ public function googleLogin(Request $request, AuthService $authService)
     }
 
     try {
-        $data = $authService->googleLogin($validator->validated());
+        $identity = $request->filled('firebase_token')
+            ? $verifier->verify($request->firebase_token, 'google.com')
+            : null;
+
+        $data = $authService->socialLogin($validator->validated(), $identity, 'google_id');
 
         return response()->json([
             'message' => 'Connexion Google réussie',
+            'data'    => $data,
+            'success' => true
+        ], 200);
+
+    } catch (ValidationException $e) {
+
+        return response()->json([
+            'message' => 'Connexion refusée',
+            'errors'  => $e->errors(),
+            "success" => false
+        ], 401);
+    }
+}
+
+public function appleLogin(Request $request, AuthService $authService, FirebaseTokenVerifier $verifier)
+{
+    $validator = Validator::make($request->all(), [
+        'firebase_token' => 'required|string',
+        'name'     => 'nullable|string|max:255',
+        'apple_id' => 'nullable|string',
+        'role'     => 'nullable|in:worker,manager',
+        'phone'    => 'nullable|string|max:20',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'message' => 'Erreur de validation',
+            'errors'  => $validator->errors(),
+            "success" => false
+        ], 422);
+    }
+
+    try {
+        $identity = $verifier->verify($request->firebase_token, 'apple.com');
+
+        $data = $authService->socialLogin($validator->validated(), $identity, 'apple_id');
+
+        return response()->json([
+            'message' => 'Connexion Apple réussie',
             'data'    => $data,
             'success' => true
         ], 200);

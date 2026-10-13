@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Notifications\ResetPasswordOtpNotification;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -77,68 +78,102 @@ class AuthService
         return auth()->user();
     }
 
-    public function googleLogin(array $data): array
-{
-    // Chercher l'utilisateur, même s'il est supprimé (soft deleted)
-    $user = User::withTrashed()->where('email', $data['email'])->first();
+    /**
+     * Connexion Google ou Apple.
+     *
+     * $identity provient d'un jeton Firebase vérifié (FirebaseTokenVerifier) :
+     * l'email et les identifiants qu'il contient font foi, jamais ceux du corps
+     * de la requête. $identity n'est null que pour les anciennes versions de
+     * l'app (Google uniquement, si FIREBASE_ALLOW_LEGACY_GOOGLE_LOGIN=true).
+     *
+     * @param string $column Colonne de l'identifiant fournisseur (google_id ou apple_id)
+     */
+    public function socialLogin(array $data, ?array $identity, string $column): array
+    {
+        if ($identity) {
+            if (empty($identity['email']) || !$identity['email_verified']) {
+                throw ValidationException::withMessages([
+                    'email' => ['Adresse email non vérifiée par le fournisseur.'],
+                ]);
+            }
+            $email      = $identity['email'];
+            $providerId = $identity['provider_id'] ?? $data[$column] ?? null;
+            $uid        = $identity['uid'];
+        } else {
+            $email      = $data['email'];
+            $providerId = $data[$column] ?? null;
+            $uid        = null;
+        }
 
-    if ($user) {
-        // Si le compte est supprimé, le restaurer
-        if ($user->trashed()) {
-            \Log::info('Restauration du compte supprimé', ['email' => $user->email, 'user_id' => $user->id]);
-            $user->restore();
-            
-            // Mettre à jour les informations
-            $user->update([
-                'google_id' => $data['google_id'],
-                'avatar'    => $data['avatar'] ?? $user->avatar,
-                'name'      => $data['name'],
+        // Chercher l'utilisateur, même s'il est supprimé (soft deleted)
+        $user = null;
+        if ($uid) {
+            $user = User::withTrashed()->where('firebase_uid', $uid)->first();
+        }
+        if (!$user && $providerId) {
+            $user = User::withTrashed()->where($column, $providerId)->first();
+        }
+        if (!$user) {
+            $user = User::withTrashed()->where('email', $email)->first();
+        }
+
+        if ($user) {
+            // Compte bloqué
+            if ($user->status === 'blocked') {
+                throw ValidationException::withMessages([
+                    'account' => ['Votre compte est bloqué'],
+                ]);
+            }
+
+            // Si le compte est supprimé, le restaurer
+            if ($user->trashed()) {
+                \Log::info('Restauration du compte supprimé', ['email' => $user->email, 'user_id' => $user->id]);
+                $user->restore();
+                $user->update(['status' => 'active']);
+            }
+
+            // Lier les identifiants absents
+            $updates = [];
+            if (is_null($user->{$column}) && $providerId) {
+                $updates[$column] = $providerId;
+            }
+            if ($uid && is_null($user->firebase_uid)) {
+                $updates['firebase_uid'] = $uid;
+            }
+            if (is_null($user->avatar) && !empty($data['avatar'])) {
+                $updates['avatar'] = $data['avatar'];
+            }
+            if ($updates) {
+                $user->update($updates);
+            }
+
+        } else {
+            // Création nouvel utilisateur
+            $user = User::create([
+                'name'      => !empty($data['name']) ? $data['name'] : explode('@', $email)[0],
+                'email'     => $email,
+                $column     => $providerId,
+                'firebase_uid' => $uid,
+                'avatar'    => $data['avatar'] ?? null,
+                'role'      => $data['role'] ?? 'worker',
+                'phone'     => !empty($data['phone']) ? $data['phone'] : null,
+                'email_verified_at' => now(),
                 'status'    => 'active',
-               
-            ]);
-        }
-        
-        // Compte bloqué
-        if ($user->status === 'blocked') {
-            throw ValidationException::withMessages([
-                'account' => ['Votre compte est bloqué'],
+                'password'  => null,
+                'company_verified' => true,
             ]);
         }
 
-        // Lier google_id si absent
-        if (is_null($user->google_id)) {
-            $user->update([
-                'google_id' => $data['google_id'],
-                'avatar'    => $data['avatar'] ?? $user->avatar,
-            ]);
-        }
+        // Nettoyage tokens
+        $user->tokens()->delete();
 
-    } else {
-        // Création nouvel utilisateur
-        $user = User::create([
-            'name'      => $data['name'],
-            'email'     => $data['email'],
-            'google_id' => $data['google_id'],
-            'avatar'    => $data['avatar'] ?? null,
-            'role'      => $data['role'] ?? 'worker',
-            'phone'     => $data['phone'] ?? null,
-            'email_verified_at' => now(),
-            'status'    => 'active',
-            'password'  => null,
-            'company_verified' => true,
-        ]);
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return [
+            'user'  => $user,
+            'token' => $token,
+        ];
     }
-
-    // Nettoyage tokens
-    $user->tokens()->delete();
-
-    $token = $user->createToken('auth_token')->plainTextToken;
-
-    return [
-        'user'  => $user,
-        'token' => $token,
-    ];
-}
 
     /**
      * Envoi du code OTP pour réinitialisation de mot de passe
@@ -170,6 +205,8 @@ class AuthService
 
         // Génération d'un code OTP à 6 chiffres
         $code = sprintf('%06d', random_int(100000, 999999));
+
+        Cache::forget('reset_code_attempts:' . sha1($user->email));
 
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $user->email],
@@ -216,6 +253,18 @@ class AuthService
         }
 
         if (!Hash::check($code, $record->token)) {
+            // 5 essais maximum par code, sinon il faut en redemander un
+            $attemptsKey = 'reset_code_attempts:' . sha1($email);
+            Cache::add($attemptsKey, 0, now()->addMinutes(15));
+            $attempts = (int) Cache::increment($attemptsKey);
+            if ($attempts >= 5) {
+                DB::table('password_reset_tokens')->where('email', $email)->delete();
+                Cache::forget($attemptsKey);
+                throw ValidationException::withMessages([
+                    'code' => ['Trop de tentatives. Veuillez faire une nouvelle demande de code.'],
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'code' => ['Le code saisi est incorrect.'],
             ]);
