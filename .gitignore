@@ -7,7 +7,7 @@
 /storage/pail
 /storage/app/firebase-credentials.json
 /vendor
-# .env
+.env
 .env.backup
 .env.production
 .phpactor.json
