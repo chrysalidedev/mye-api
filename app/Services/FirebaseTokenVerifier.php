@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -28,22 +26,19 @@ class FirebaseTokenVerifier
             throw new \RuntimeException('FIREBASE_PROJECT_ID non configuré');
         }
 
-        try {
-            JWT::$leeway = 60;
-            $claims = (array) JWT::decode($idToken, $this->publicKeys());
-        } catch (\Throwable $e) {
-            Log::warning('Jeton Firebase refusé: ' . $e->getMessage());
-            $this->fail();
-        }
+        $claims = $this->decodeAndVerifySignature($idToken);
 
+        $now = time();
         if (($claims['aud'] ?? null) !== $projectId
             || ($claims['iss'] ?? null) !== "https://securetoken.google.com/{$projectId}"
             || empty($claims['sub'])
-            || ($claims['auth_time'] ?? PHP_INT_MAX) > time() + 60) {
+            || ($claims['exp'] ?? 0) < $now - 60
+            || ($claims['iat'] ?? PHP_INT_MAX) > $now + 60
+            || ($claims['auth_time'] ?? PHP_INT_MAX) > $now + 60) {
             $this->fail();
         }
 
-        $firebase = json_decode(json_encode($claims['firebase'] ?? []), true);
+        $firebase = $claims['firebase'] ?? [];
         $provider = $firebase['sign_in_provider'] ?? null;
         if ($provider !== $expectedProvider) {
             $this->fail();
@@ -59,11 +54,52 @@ class FirebaseTokenVerifier
     }
 
     /**
-     * Certificats publics de Google, mis en cache selon leur durée de validité.
-     *
-     * @return array<string, Key>
+     * Vérifie la signature RS256 du jeton avec les certificats publics de
+     * Google et retourne son contenu.
      */
-    private function publicKeys(): array
+    private function decodeAndVerifySignature(string $jwt): array
+    {
+        $parts = explode('.', $jwt);
+        if (count($parts) !== 3) {
+            $this->fail();
+        }
+        [$headerB64, $payloadB64, $signatureB64] = $parts;
+
+        $header    = json_decode($this->base64UrlDecode($headerB64), true);
+        $payload   = json_decode($this->base64UrlDecode($payloadB64), true);
+        $signature = $this->base64UrlDecode($signatureB64);
+
+        if (!is_array($header) || !is_array($payload) || ($header['alg'] ?? null) !== 'RS256') {
+            $this->fail();
+        }
+
+        $cert = $this->publicCertificates()[$header['kid'] ?? ''] ?? null;
+        if (!$cert) {
+            Log::warning('Jeton Firebase refusé: certificat inconnu');
+            $this->fail();
+        }
+
+        $valid = openssl_verify("{$headerB64}.{$payloadB64}", $signature, $cert, OPENSSL_ALGO_SHA256);
+        if ($valid !== 1) {
+            Log::warning('Jeton Firebase refusé: signature invalide');
+            $this->fail();
+        }
+
+        return $payload;
+    }
+
+    private function base64UrlDecode(string $data): string
+    {
+        return (string) base64_decode(strtr($data, '-_', '+/') . str_repeat('=', (4 - strlen($data) % 4) % 4), true);
+    }
+
+    /**
+     * Certificats publics de Google (kid => certificat PEM), mis en cache
+     * selon leur durée de validité.
+     *
+     * @return array<string, string>
+     */
+    private function publicCertificates(): array
     {
         $certs = Cache::get('firebase_public_certs');
 
@@ -78,7 +114,7 @@ class FirebaseTokenVerifier
             Cache::put('firebase_public_certs', $certs, (int) ($m[1] ?? 3600));
         }
 
-        return array_map(fn ($cert) => new Key($cert, 'RS256'), $certs);
+        return $certs;
     }
 
     private function fail(): never
